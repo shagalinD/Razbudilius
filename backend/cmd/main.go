@@ -1,16 +1,27 @@
 package main
 
+import (
+	"log"
+	handlers "razbudilius/hanglers"
+	"razbudilius/internal/config"
+	"razbudilius/models"
+	"razbudilius/storage/postgres"
+
+	"github.com/gin-gonic/gin"
+)
+
 func main() {
-	// config := config.MustLoad()
+	config := config.MustLoad()
+	db, err := postgres.New(config)
 
-	// connString := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=%s", config.Database.Name, config.Database.Password, config.Database.Name, config.Database.SSLMode)
-	// db, err:= postgres.New(connString)
+	if err != nil {
+		log.Fatal("Error on accessing database")
+		return
+	}
 
-	// if err != nil {
-	// 	log.Fatal("Error on accessing database")
-	// 	return 
-	// }
-	
-	// router := gin.Default()
+	router := gin.Default()
+	db.AutoMigrate(&models.User{})
+
+	router.GET("/register", handlers.Register(db))
+	router.GET("/auth", handlers.Login(db))
 }
-
