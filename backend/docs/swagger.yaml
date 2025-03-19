@@ -1,0 +1,97 @@
+basePath: /
+definitions:
+  models.User:
+    description: User model
+    properties:
+      email:
+        example: testuser@example.com
+        type: string
+      password:
+        example: "12345678"
+        type: string
+      username:
+        example: testuser
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API для управления пользователями
+  title: Razbudilius API
+  version: "1.0"
+paths:
+  /signin:
+    post:
+      consumes:
+      - application/json
+      description: Авторизует пользователя по имени и паролю
+      parameters:
+      - description: Данные для авторизации
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Авторизация пользователя
+      tags:
+      - auth
+  /signup:
+    post:
+      consumes:
+      - application/json
+      description: Регистрирует нового пользователя с указанным именем и паролем
+      parameters:
+      - description: Данные пользователя
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Регистрация нового пользователя
+      tags:
+      - auth
+swagger: "2.0"
