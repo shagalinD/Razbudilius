@@ -2,21 +2,25 @@ package postgres
 
 import (
 	"fmt"
+	"log"
+	"razbudilius/internal/config"
+	"razbudilius/models"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-type Storage struct {
-	db *gorm.DB
-}
+var DB *gorm.DB
 
-func New(storagePath string) (*Storage, error) {
-	db, err:= gorm.Open(postgres.Open(storagePath), &gorm.Config{})
+func New(config *config.Config) {
+	var err error
+	connString := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=%s", config.Database.User, config.Database.Password, config.Database.Name, config.Database.SSLMode)
+	DB, err = gorm.Open(postgres.Open(connString), &gorm.Config{})
 
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", "storage.postgres.new", err)
+		log.Panic(fmt.Errorf("error connecting to a database: %s", err))
+		return 
 	}
-
-	return &Storage{db}, nil
+	
+	DB.AutoMigrate(&models.User{})
 }
