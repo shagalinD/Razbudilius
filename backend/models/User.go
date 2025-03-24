@@ -11,7 +11,7 @@ type User struct {
   CreatedAt time.Time `json:"-"`
   UpdatedAt time.Time `json:"-"`
   DeletedAt time.Time `json:"-"`
-  Username  string    `json:"username" gorm:"unique;not null" example:"testuser"`
+  Name  string    `json:"name" gorm:"unique;not null" example:"testuser"`
   Password  string    `json:"password" gorm:"not null" example:"12345678"`
   Email     string    `json:"email" gorm:"unique;not null" example:"testuser@example.com"`
 }

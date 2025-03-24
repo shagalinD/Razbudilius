@@ -1,14 +1,19 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"razbudilius/models"
 	"razbudilius/storage/postgres"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 // Singup godoc
@@ -21,8 +26,8 @@ import (
 // @Success 201 {object} models.User
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
-// @Router /signup [post]
-func Signup(c *gin.Context) {
+// @Router /register [post]
+func Register(c *gin.Context) {
 	//Get a new user's data
 	var user models.User
 
@@ -44,8 +49,15 @@ func Signup(c *gin.Context) {
 	user.Password = string(hashedPassword)
 
 	if err := postgres.DB.Create(&user).Error; err != nil {
+		var errorString string
+		switch {
+		case errors.Is(err, gorm.ErrDuplicatedKey):
+			errorString = fmt.Sprintf("could not create a user: %s", "user already exists")
+		default:
+			errorString = fmt.Sprintf("could not create a user: %s", err)
+		}
 		log.Printf("Error creating user: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("could not create a user: %s", err)})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errorString})
 			return
 	}
 
@@ -53,8 +65,8 @@ func Signup(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "User created successfully"})
 }
 
-// Signin godoc
-// @Summary Авторизация пользователя
+// Login godoc
+// @Summary Аутентификация пользователя
 // @Description Авторизует пользователя по имени и паролю
 // @Tags auth
 // @Accept json
@@ -64,8 +76,8 @@ func Signup(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 401 {object} map[string]string
 // @Failure 500 {object} map[string]string
-// @Router /signin [post]
-func Signin(c *gin.Context)  {
+// @Router /login [post]
+func Login(c *gin.Context)  {
 	// Get user's data
 	var user models.User
 	if err := c.ShouldBindJSON(&user); err != nil {
@@ -73,9 +85,9 @@ func Signin(c *gin.Context)  {
 		return 
 	}
 
-	// Find in database
+	// Look up requested user
 	var foundUser models.User 
-	if err := postgres.DB.Where("username = ?", user.Username).First(&foundUser).Error; err != nil {
+	if err := postgres.DB.Where("name = ?", user.Name).First(&foundUser).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
@@ -86,12 +98,51 @@ func Signin(c *gin.Context)  {
 		return 
 	}
 
+	// Generate JWT token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": foundUser.ID,
+		"exp": time.Now().Add(time.Hour * 24 * 30).Unix(),
+	})
+
+	tokenString, err := token.SignedString([]byte(os.Getenv("SECRET")))
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("error on creating jwt token: %s", err),
+		})
+	}
+
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie("Authorization", tokenString, 3600*24*30, "", "", false, true) //!!!CORRECT FALSE TO TRUE ON PRODUCTION!!!
 	// Respond
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Login successful",
-		"user": gin.H{
-			"username": foundUser.Username,
-			"email": foundUser.Email,
-		},
+		"token": tokenString,
+	})
+}
+
+
+// GetUser godoc
+// @Summary Получение информации о пользователе
+// @Description Получает информацию о пользователе на основе токена, сохраненного в куки
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Success 200 {object} models.User
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 500 {object} map[string]string "Internal Server Error"
+// @Router /profile [get]
+func Profile(c *gin.Context) {
+	user, _ := c.Get("User")
+
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"message": "Token not found",
+		})
+	}
+
+	fmt.Print("Logged in")
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": user,
 	})
 }

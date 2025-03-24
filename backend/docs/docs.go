@@ -15,7 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/signin": {
+        "/login": {
             "post": {
                 "description": "Авторизует пользователя по имени и паролю",
                 "consumes": [
@@ -27,7 +27,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Авторизация пользователя",
+                "summary": "Аутентификация пользователя",
                 "parameters": [
                     {
                         "description": "Данные для авторизации",
@@ -76,7 +76,48 @@ const docTemplate = `{
                 }
             }
         },
-        "/signup": {
+        "/profile": {
+            "get": {
+                "description": "Получает информацию о пользователе на основе токена, сохраненного в куки",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Получение информации о пользователе",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.User"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/register": {
             "post": {
                 "description": "Регистрирует нового пользователя с указанным именем и паролем",
                 "consumes": [
@@ -138,13 +179,13 @@ const docTemplate = `{
                     "type": "string",
                     "example": "testuser@example.com"
                 },
+                "name": {
+                    "type": "string",
+                    "example": "testuser"
+                },
                 "password": {
                     "type": "string",
                     "example": "12345678"
-                },
-                "username": {
-                    "type": "string",
-                    "example": "testuser"
                 }
             }
         }

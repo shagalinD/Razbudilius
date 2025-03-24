@@ -4,6 +4,7 @@ import (
 	_ "razbudilius/docs"
 	handlers "razbudilius/handlers"
 	"razbudilius/internal/config"
+	"razbudilius/middleware"
 	"razbudilius/storage/postgres"
 
 	"github.com/gin-gonic/gin"
@@ -16,6 +17,7 @@ import (
 // @description API для управления пользователями
 // @host localhost:8080
 // @BasePath /
+
 func main() {
 	config := config.MustLoad()
 	postgres.New(config)
@@ -23,8 +25,9 @@ func main() {
 	router := gin.Default()
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	router.POST("/signup", handlers.Signup)
-	router.POST("/signin", handlers.Signin)
+	router.POST("/register", handlers.Register)
+	router.POST("/login", handlers.Login)
+	router.GET("/profile", middleware.RequireAuth, handlers.Profile)
 
 	router.Run(":8080")
 }

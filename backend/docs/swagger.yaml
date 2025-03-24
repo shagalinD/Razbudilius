@@ -6,11 +6,11 @@ definitions:
       email:
         example: testuser@example.com
         type: string
+      name:
+        example: testuser
+        type: string
       password:
         example: "12345678"
-        type: string
-      username:
-        example: testuser
         type: string
     type: object
 host: localhost:8080
@@ -20,7 +20,7 @@ info:
   title: Razbudilius API
   version: "1.0"
 paths:
-  /signin:
+  /login:
     post:
       consumes:
       - application/json
@@ -57,10 +57,38 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Авторизация пользователя
+      summary: Аутентификация пользователя
       tags:
       - auth
-  /signup:
+  /profile:
+    get:
+      consumes:
+      - application/json
+      description: Получает информацию о пользователе на основе токена, сохраненного
+        в куки
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получение информации о пользователе
+      tags:
+      - auth
+  /register:
     post:
       consumes:
       - application/json
