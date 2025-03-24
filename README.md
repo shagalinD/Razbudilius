@@ -1,6 +1,3 @@
-(Due to technical issues, the search service is temporarily unavailable.)
-
-```markdown
 # Razbudilius 🔧
 
 Бэкенд-сервис для регистрации пользователей, аутентификации и управления профилями с использованием Go, GORM и JWT.
@@ -27,7 +24,7 @@
 ```bash
 git clone https://github.com/yourusername/razbudilius.git
 cd razbudilius/backend
-```
+
 
 2. Установите зависимости:
 ```bash
