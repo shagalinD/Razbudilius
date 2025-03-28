@@ -5,5 +5,4 @@ export interface IUser {
   password: string;
   name: string;
   avatarPath: string;
-  favorites: any;
 }
