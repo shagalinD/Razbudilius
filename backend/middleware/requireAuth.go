@@ -42,12 +42,11 @@ func RequireAuth(c *gin.Context) {
 		}
 
 		var user models.User 
-		if err := postgres.DB.First(&user, claims["sub"]).Error; err != nil {
+		if err := postgres.DB.Select("email").First(&user, claims["sub"]).Error; err != nil {
 			c.AbortWithStatus(http.StatusUnauthorized)
 		}
 		// Attach to reqx
 		c.Set("User", gin.H{
-			"name": user.Name,
 			"email": user.Email,
 		})
 		

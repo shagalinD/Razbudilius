@@ -87,7 +87,7 @@ func Login(c *gin.Context)  {
 
 	// Look up requested user
 	var foundUser models.User 
-	if err := postgres.DB.Where("name = ?", user.Name).First(&foundUser).Error; err != nil {
+	if err := postgres.DB.Where("email = ?", user.Email).First(&foundUser).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
@@ -116,7 +116,7 @@ func Login(c *gin.Context)  {
 	c.SetCookie("Authorization", tokenString, 3600*24*30, "", "", false, true) //!!!CORRECT FALSE TO TRUE ON PRODUCTION!!!
 	// Respond
 	c.JSON(http.StatusOK, gin.H{
-		"token": tokenString,
+		"message": "login successful",
 	})
 }
 
@@ -143,6 +143,6 @@ func Profile(c *gin.Context) {
 	fmt.Print("Logged in")
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": user,
+		"data": user,
 	})
 }

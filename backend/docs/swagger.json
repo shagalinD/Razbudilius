@@ -173,10 +173,6 @@
                     "type": "string",
                     "example": "testuser@example.com"
                 },
-                "name": {
-                    "type": "string",
-                    "example": "testuser"
-                },
                 "password": {
                     "type": "string",
                     "example": "12345678"
