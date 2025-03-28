@@ -6,9 +6,6 @@ definitions:
       email:
         example: testuser@example.com
         type: string
-      name:
-        example: testuser
-        type: string
       password:
         example: "12345678"
         type: string
