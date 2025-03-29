@@ -1,7 +1,7 @@
-import { FC, PropsWithChildren } from "react"; // Импортируем PropsWithChildren из react
-import { Text, ScrollView, StyleSheet } from "react-native";
+import { FC, PropsWithChildren } from "react";
+import { Text, ScrollView, StyleSheet, ImageBackground } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import cn from "clsx";
-import { LinearGradient } from "expo-linear-gradient"; // Используем expo-linear-gradient для Expo
 
 interface ILayout {
   className?: string;
@@ -9,22 +9,43 @@ interface ILayout {
 
 const Layout: FC<PropsWithChildren<ILayout>> = ({ children, className }) => {
   return (
-    <LinearGradient
-      colors={["#4c669f", "#3b5998", "#192f6a"]} // Задаем цвета градиента
-      start={{ x: 0, y: 0 }} // Начальная точка градиента
-      end={{ x: 1, y: 1 }} // Конечная точка градиента
-      style={styles.container} // Используем объект стилей
+    <ImageBackground
+      source={require("@/assets/ff59c4616eef370c3a2e2e7f389bf24a.jpg")} // Укажите путь к вашему изображению
+      resizeMode="cover"
+      style={styles.backgroundImage}
     >
-      <ScrollView showsVerticalScrollIndicator={false}>{children}</ScrollView>
-    </LinearGradient>
+      <LinearGradient
+        colors={[
+          "rgba(76, 102, 159, 0.3)",
+          "rgba(59, 89, 152, 0.3)",
+          "rgba(25, 47, 106, 0.5)",
+        ]} // Добавлена прозрачность
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientOverlay}
+      >
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          style={styles.scrollView}
+        >
+          {children}
+        </ScrollView>
+      </LinearGradient>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  backgroundImage: {
+    flex: 1,
+  },
+  gradientOverlay: {
     flex: 1,
     paddingHorizontal: 16,
+  },
+  scrollView: {
     marginTop: 64,
   },
 });
+
 export default Layout;
