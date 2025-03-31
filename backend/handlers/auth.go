@@ -23,7 +23,7 @@ import (
 // @Accept json
 // @Produce json
 // @Param user body models.User true "Данные пользователя"
-// @Success 201 {object} models.User
+// @Success 201 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /register [post]
@@ -62,7 +62,50 @@ func Register(c *gin.Context) {
 	}
 
 	// Respond
-	c.JSON(http.StatusCreated, gin.H{"message": "User created successfully"})
+	refreshTokenString, refreshErr := createRefreshToken(user.ID)
+	accessTokenString, accessErr := createAccessToken(user.ID)
+
+	if refreshErr != nil || accessErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("error on creating jwt token: %s", refreshErr),
+		})
+	}
+
+	// Respond
+	c.JSON(http.StatusOK, gin.H{
+		"accessToken": accessTokenString,
+		"refreshToken": refreshTokenString,
+	})
+}
+
+func createAccessToken(userId uint) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": userId,
+		"exp": time.Now().Add(time.Minute * 10).Unix(),
+	})
+
+	tokenString, err := token.SignedString([]byte(os.Getenv("SECRET")))
+
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
+}
+
+func createRefreshToken(userId uint) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": userId,
+		"exp": time.Now().Add(time.Hour*24*30).Unix(),
+	})
+
+	tokenString, err := token.SignedString([]byte(os.Getenv("SECRET")))
+
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
 }
 
 // Login godoc
@@ -88,7 +131,7 @@ func Login(c *gin.Context)  {
 	// Look up requested user
 	var foundUser models.User 
 	if err := postgres.DB.Where("email = ?", user.Email).First(&foundUser).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
 		return
 	}
 
@@ -99,24 +142,19 @@ func Login(c *gin.Context)  {
 	}
 
 	// Generate JWT token
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": foundUser.ID,
-		"exp": time.Now().Add(time.Hour * 24 * 30).Unix(),
-	})
+	refreshTokenString, refreshErr := createRefreshToken(foundUser.ID)
+	accessTokenString, accessErr := createAccessToken(foundUser.ID)
 
-	tokenString, err := token.SignedString([]byte(os.Getenv("SECRET")))
-
-	if err != nil {
+	if refreshErr != nil || accessErr != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("error on creating jwt token: %s", err),
+			"error": fmt.Sprintf("error on creating jwt token: %s", refreshErr),
 		})
 	}
 
-	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie("Authorization", tokenString, 3600*24*30, "", "", false, true) //!!!CORRECT FALSE TO TRUE ON PRODUCTION!!!
 	// Respond
 	c.JSON(http.StatusOK, gin.H{
-		"message": "login successful",
+		"accessToken": accessTokenString,
+		"refreshToken": refreshTokenString,
 	})
 }
 
@@ -127,6 +165,7 @@ func Login(c *gin.Context)  {
 // @Tags auth
 // @Accept json
 // @Produce json
+// @Param Authorization header string true "Access Token"
 // @Success 200 {object} models.User
 // @Failure 401 {object} map[string]string "Unauthorized"
 // @Failure 500 {object} map[string]string "Internal Server Error"
@@ -144,5 +183,68 @@ func Profile(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"data": user,
+	})
+}
+
+// @Summary Refresh access token
+// @Description Refreshes the access token using a valid refresh token
+// @Tags auth
+// @Accept  json
+// @Produce  json
+// @Param Authorization header string true "Refresh Token"
+// @Success 200 {object} map[string]string "{"access_token": "new_access_token", "refresh_token": "new_refresh_token"}"
+// @Failure 400 {object} map[string]string "{"error": "Refresh token is required"}"
+// @Failure 401 {object} map[string]string "{"error": "Invalid refresh token"}"
+// @Failure 500 {object} map[string]string "{"error": "Could not generate token"}"
+// @Router /refresh [get]
+func RefreshToken(c *gin.Context) {
+	refreshToken := c.GetHeader("Authorization")
+
+	if refreshToken == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Refresh token is required"})
+			return
+	}
+
+	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			return []byte(os.Getenv("SECRET")), nil
+	})
+
+	log.Print(refreshToken)
+
+	if err != nil || !token.Valid {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
+			return
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || float64(time.Now().Unix()) > claims["exp"].(float64) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh token expired"})
+			return
+	}
+
+	var user models.User
+	if err := postgres.DB.First(&user, "id = ?", claims["sub"]).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+			return
+	}
+
+	newAccessToken, err := createAccessToken(user.ID)
+	if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate access token"})
+			return
+	}
+
+	newRefreshToken, err := createRefreshToken(user.ID)
+	if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate refresh token"})
+			return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+			"access_token":  newAccessToken,
+			"refresh_token": newRefreshToken,
 	})
 }

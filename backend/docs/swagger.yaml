@@ -63,6 +63,12 @@ paths:
       - application/json
       description: Получает информацию о пользователе на основе токена, сохраненного
         в куки
+      parameters:
+      - description: Access Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -85,6 +91,47 @@ paths:
       summary: Получение информации о пользователе
       tags:
       - auth
+  /refresh:
+    get:
+      consumes:
+      - application/json
+      description: Refreshes the access token using a valid refresh token
+      parameters:
+      - description: Refresh Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{"access_token": "new_access_token", "refresh_token": "new_refresh_token"}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: '{"error": "Refresh token is required"}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: '{"error": "Invalid refresh token"}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: '{"error": "Could not generate token"}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Refresh access token
+      tags:
+      - auth
   /register:
     post:
       consumes:
@@ -103,7 +150,9 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.User'
+            additionalProperties:
+              type: string
+            type: object
         "400":
           description: Bad Request
           schema:

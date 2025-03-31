@@ -28,6 +28,7 @@ func main() {
 	router.POST("/register", handlers.Register)
 	router.POST("/login", handlers.Login)
 	router.GET("/profile", middleware.RequireAuth, handlers.Profile)
+	router.GET("/refresh", handlers.RefreshToken)
 
 	router.Run(":8080")
 }

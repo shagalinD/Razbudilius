@@ -13,10 +13,10 @@ import (
 )
 
 func RequireAuth(c *gin.Context) {
-	// Get the cookie
-	tokenString, err := c.Cookie("Authorization")
+	// Get token
+	tokenString := c.GetHeader("Authorization")
 
-	if tokenString == "" || err != nil {
+	if tokenString == ""{
 		c.AbortWithStatus(http.StatusUnauthorized)
 	}
 
@@ -38,12 +38,16 @@ func RequireAuth(c *gin.Context) {
 		
 		// Check the expiration
 		if float64(time.Now().Unix()) > claims["exp"].(float64) {
-			c.AbortWithStatus(http.StatusUnauthorized)
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "access token expired",
+			})
 		}
 
 		var user models.User 
 		if err := postgres.DB.Select("email").First(&user, claims["sub"]).Error; err != nil {
-			c.AbortWithStatus(http.StatusUnauthorized)
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "invalid token",
+			})
 		}
 		// Attach to reqx
 		c.Set("User", gin.H{
@@ -55,5 +59,4 @@ func RequireAuth(c *gin.Context) {
 	} else {
 		c.AbortWithStatus(http.StatusUnauthorized)
 	}
-
 }
