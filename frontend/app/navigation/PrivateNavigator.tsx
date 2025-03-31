@@ -18,14 +18,14 @@ const PrivateNavigator: FC = () => {
         },
       }}
     >
-      {routes.map((route) => (
+      {/* {routes.map((route) => (
         <Stack.Screen key={route.name} {...route} />
-      ))}
-      {/* {user ? (
+      ))} */}
+      {user ? (
         routes.map((route) => <Stack.Screen key={route.name} {...route} />)
       ) : (
         <Stack.Screen name="Auth" component={Auth} />
-      )} */}
+      )}
     </Stack.Navigator>
   );
 };
