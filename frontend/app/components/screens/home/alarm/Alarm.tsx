@@ -11,6 +11,9 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker"; // Импортируем Picker
+import { TypeRootStackParamList } from "@/navigation/navigation.types";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 interface Alarm {
   id: string;
@@ -23,6 +26,8 @@ const AlarmClock = () => {
   const [selectedHour, setSelectedHour] = useState<string>("00");
   const [selectedMinute, setSelectedMinute] = useState<string>("00");
 
+  const navigation =
+    useNavigation<NativeStackNavigationProp<TypeRootStackParamList>>();
   // Загрузка будильников
   useEffect(() => {
     const loadAlarms = async () => {
@@ -37,6 +42,39 @@ const AlarmClock = () => {
     };
     loadAlarms();
   }, []);
+
+  useEffect(() => {
+    const checkAlarms = () => {
+      const now = new Date();
+      const hours = now.getHours().toString().padStart(2, "0");
+      const minutes = now.getMinutes().toString().padStart(2, "0");
+      const currentTime = `${hours}:${minutes}`;
+
+      // Ищем активный будильник
+      const activeAlarm = alarms.find(
+        (alarm) => alarm.isEnabled && alarm.time === currentTime
+      );
+
+      if (activeAlarm) {
+        navigation.navigate("Chat", {
+          alarmId: activeAlarm.id,
+          alarmTime: activeAlarm.time,
+        });
+
+        // Дополнительно: отключаем будильник после срабатывания
+        // если нужно одноразовое срабатывание
+        // toggleAlarm(activeAlarm.id);
+      }
+    };
+
+    // Проверяем сразу при монтировании
+    checkAlarms();
+
+    // Затем проверяем каждую минуту
+    const interval = setInterval(checkAlarms, 60000);
+
+    return () => clearInterval(interval);
+  }, [alarms, navigation]);
 
   // Сохранение будильников
   const saveAlarms = async (updatedAlarms: Alarm[]) => {
@@ -92,8 +130,40 @@ const AlarmClock = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Будильники</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Будильники</Text>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={selectedHour}
+            style={styles.picker}
+            onValueChange={(itemValue: string) => setSelectedHour(itemValue)} // Типизация параметра
+          >
+            {Array.from({ length: 24 }, (_, index) => (
+              <Picker.Item
+                key={index}
+                label={String(index).padStart(2, "0")}
+                value={String(index).padStart(2, "0")}
+              />
+            ))}
+          </Picker>
 
+          <Text style={styles.separator}>:</Text>
+
+          <Picker
+            selectedValue={selectedMinute}
+            style={styles.picker}
+            onValueChange={(itemValue: string) => setSelectedMinute(itemValue)} // Типизация параметра
+          >
+            {Array.from({ length: 60 }, (_, index) => (
+              <Picker.Item
+                key={index}
+                label={String(index).padStart(2, "0")}
+                value={String(index).padStart(2, "0")}
+              />
+            ))}
+          </Picker>
+        </View>
+      </View>
       <FlatList
         data={alarms}
         renderItem={renderAlarmItem}
@@ -103,38 +173,15 @@ const AlarmClock = () => {
         }
       />
 
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={selectedHour}
-          style={styles.picker}
-          onValueChange={(itemValue: string) => setSelectedHour(itemValue)} // Типизация параметра
-        >
-          {Array.from({ length: 24 }, (_, index) => (
-            <Picker.Item
-              key={index}
-              label={String(index).padStart(2, "0")}
-              value={String(index).padStart(2, "0")}
-            />
-          ))}
-        </Picker>
-
-        <Text style={styles.separator}>:</Text>
-
-        <Picker
-          selectedValue={selectedMinute}
-          style={styles.picker}
-          onValueChange={(itemValue: string) => setSelectedMinute(itemValue)} // Типизация параметра
-        >
-          {Array.from({ length: 60 }, (_, index) => (
-            <Picker.Item
-              key={index}
-              label={String(index).padStart(2, "0")}
-              value={String(index).padStart(2, "0")}
-            />
-          ))}
-        </Picker>
-      </View>
-
+      <Button
+        title="Тест: Открыть чат"
+        onPress={() =>
+          navigation.navigate("Chat", {
+            alarmId: "test123",
+            alarmTime: "12:00",
+          })
+        }
+      />
       <TouchableOpacity style={styles.addButton} onPress={handleAddAlarm}>
         <Text style={styles.addButtonText}>+ Добавить будильник</Text>
       </TouchableOpacity>
@@ -150,8 +197,14 @@ const styles = StyleSheet.create({
   },
   title: {
     color: "#fff",
-    fontSize: 24,
+    fontSize: 25,
     fontWeight: "bold",
+    marginBottom: 20,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center", // Выравнивание по центру по вертикали
     marginBottom: 20,
   },
   alarmItem: {
@@ -180,8 +233,9 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     flexDirection: "row",
-    justifyContent: "center",
     alignItems: "center",
+    flex: 1, // Занимает доступное пространство
+    justifyContent: "flex-end", // Выравнивание по правому краю
   },
   picker: {
     width: 80,

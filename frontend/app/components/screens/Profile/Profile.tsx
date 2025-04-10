@@ -12,7 +12,7 @@ const Profile: FC = () => {
   const { profile } = useProfile();
   return (
     <Layout>
-      <Heading isCenter>Profile</Heading>
+      <Heading isCenter>Профиль</Heading>
       <View className="my-6 items-center justify-center">
         <Image
           source={require("@/assets/User.jpg")}
@@ -23,7 +23,7 @@ const Profile: FC = () => {
         onPress={() => AuthService.logout().then(() => setUser(null))}
         className="mt-5"
       >
-        Logout
+        Выход
       </Button>
     </Layout>
   );
