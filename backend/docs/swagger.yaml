@@ -1,5 +1,12 @@
 basePath: /
 definitions:
+  handlers.QuestRequest:
+    properties:
+      session_id:
+        type: string
+      user_answer:
+        type: string
+    type: object
   models.User:
     description: User model
     properties:
@@ -57,6 +64,48 @@ paths:
       summary: Аутентификация пользователя
       tags:
       - auth
+  /process_answer:
+    post:
+      consumes:
+      - application/json
+      description: Send user's response and get next step of an existring quest
+      parameters:
+      - description: Ответ пользователя
+        in: body
+        name: Answer
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.QuestRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Next step
+      tags:
+      - Quest
   /profile:
     get:
       consumes:
@@ -136,7 +185,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Регистрирует нового пользователя с указанным именем и паролем
+      description: Регистрирует нового пользователя с указанной почтой и паролем
       parameters:
       - description: Данные пользователя
         in: body
@@ -168,4 +217,45 @@ paths:
       summary: Регистрация нового пользователя
       tags:
       - auth
+  /start_quest:
+    get:
+      consumes:
+      - application/json
+      description: Get first step of a new quest
+      parameters:
+      - description: Сложность квеста (30s/1m/5m)
+        in: query
+        name: dif
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get quest
+      tags:
+      - Quest
 swagger: "2.0"

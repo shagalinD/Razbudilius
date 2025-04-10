@@ -18,7 +18,7 @@ import (
 
 // Singup godoc
 // @Summary Регистрация нового пользователя
-// @Description Регистрирует нового пользователя с указанным именем и паролем
+// @Description Регистрирует нового пользователя с указанной почтой и паролем
 // @Tags auth
 // @Accept json
 // @Produce json
@@ -69,6 +69,8 @@ func Register(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("error on creating jwt token: %s", refreshErr),
 		})
+
+		return
 	}
 
 	// Respond
@@ -131,7 +133,7 @@ func Login(c *gin.Context)  {
 	// Look up requested user
 	var foundUser models.User 
 	if err := postgres.DB.Where("email = ?", user.Email).First(&foundUser).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		return
 	}
 
@@ -149,6 +151,8 @@ func Login(c *gin.Context)  {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("error on creating jwt token: %s", refreshErr),
 		})
+
+		return
 	}
 
 	// Respond
@@ -177,6 +181,8 @@ func Profile(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"message": "Token not found",
 		})
+
+		return
 	}
 
 	fmt.Print("Logged in")
