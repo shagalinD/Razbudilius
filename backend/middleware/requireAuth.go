@@ -53,6 +53,7 @@ func RequireAuth(c *gin.Context) {
 		c.Set("User", gin.H{
 			"email": user.Email,
 		})
+		c.Set("userID", user.ID)
 		
 		// Continue
 		c.Next()
