@@ -15,7 +15,7 @@ const Profile: FC = () => {
       <Heading isCenter>Profile</Heading>
       <View className="my-6 items-center justify-center">
         <Image
-          source={require("@/assets/ae84ca21f79d35af3ed4151824a44973.jpg")}
+          source={require("@/assets/User.jpg")}
           className="w-40 h-40 rounded-full"
         />
       </View>

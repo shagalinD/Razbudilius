@@ -1,5 +1,5 @@
 import { FC } from "react";
-import { Text, View, ImageBackground } from "react-native";
+import { Text, View, ImageBackground, Button } from "react-native";
 import Layout from "@/components/ui/layout/Layout";
 import Header from "./Header";
 import Banner from "./banner/Banner";
