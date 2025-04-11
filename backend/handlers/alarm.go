@@ -30,6 +30,7 @@ func HandleAlarmStop(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"error":"invalid difficulty format (30s, 1m, 5m)",
 		})
+		return
 	}
 	
 	resp, err := http.Get(

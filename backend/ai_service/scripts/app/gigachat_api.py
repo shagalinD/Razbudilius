@@ -22,12 +22,13 @@ class QuestSession:
 class GigaChatManager:
     def __init__(self):
         self.sessions: Dict[str, QuestSession] = {}
-        
+        print(os.getenv("CERTIFICATE_PATH"), os.getenv("GIGACHAT_API_KEY"))
+
         self.client = GigaChat(
             credentials=os.getenv("GIGACHAT_API_KEY"),
             scope="GIGACHAT_API_PERS",
             model="GigaChat",
-            ca_bundle_file=r"C:\Games\russian_trusted_root_ca.cer",
+            ca_bundle_file=os.getenv("CERTIFICATE_PATH")
         )
         self._update_token()
 
@@ -99,6 +100,7 @@ class GigaChatManager:
             messages=session.steps
         ))
         content = response.choices[0].message.content
+
         session.steps.append(Messages(
             role=MessagesRole.ASSISTANT,
             content=content,
