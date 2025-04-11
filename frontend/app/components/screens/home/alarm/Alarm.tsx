@@ -28,6 +28,7 @@ const AlarmClock = () => {
 
   const navigation =
     useNavigation<NativeStackNavigationProp<TypeRootStackParamList>>();
+    
   // Загрузка будильников
   useEffect(() => {
     const loadAlarms = async () => {

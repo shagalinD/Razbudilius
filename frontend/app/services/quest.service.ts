@@ -1,12 +1,6 @@
-// services/quest.service.ts
-import axios, {
-  AxiosError,
-  AxiosRequestConfig,
-  AxiosResponse,
-  InternalAxiosRequestConfig,
-} from "axios";
+import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { API_URL } from "@/config/api.config";
-import { QuestResponse, QuestDifficulty } from "@/types/apiChat";
+import { QuestResponse, QuestDifficulty, UserAnswer } from "@/types/apiChat";
 
 const api = axios.create({
   baseURL: API_URL,
@@ -22,34 +16,17 @@ interface StartQuestParams {
 }
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  console.log("Отправка запроса:", {
-    url: config.url,
-    method: config.method,
-    params: config.params,
-    data: config.data,
-    headers: config.headers,
-  });
+  console.log("Отправка запроса:", config);
   return config;
 });
 
-// Интерцептор для логирования ответов
 api.interceptors.response.use(
-  (response: AxiosResponse) => {
-    console.log("Получен ответ:", {
-      status: response.status,
-      data: response.data,
-      headers: response.headers,
-    });
+  (response) => {
+    console.log("Получен ответ:", response);
     return response;
   },
   (error: AxiosError) => {
-    console.error("Ошибка запроса:", {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message,
-    });
+    console.error("Ошибка запроса:", error);
     return Promise.reject(error);
   }
 );
@@ -57,48 +34,30 @@ api.interceptors.response.use(
 export const QuestService = {
   async startQuest(difficulty: QuestDifficulty): Promise<QuestResponse> {
     try {
-      const params: StartQuestParams = { dif: difficulty };
-
-      const response = await api.get<QuestResponse>("/start_quest", { params });
+      const response = await api.get<QuestResponse>("/start_quest", {
+        params: { dif: difficulty },
+      });
 
       return {
-        question: response.data.question,
-        hints: response.data.hints || [],
+        content: response.data.content,
         session_id: response.data.session_id,
-        ...(response.data.next_question && {
-          next_question: response.data.next_question,
-        }),
-        ...(response.data.is_correct && {
-          is_correct: response.data.is_correct,
-        }),
+        status: response.data.status,
+        progress: response.data.progress,
       };
     } catch (error) {
       throw this.handleError(error);
     }
   },
 
-  async sendAnswer(data: {
-    session_id: string;
-    user_answer: string;
-  }): Promise<QuestResponse> {
+  async sendAnswer(data: UserAnswer): Promise<QuestResponse> {
     try {
       const response = await api.post<QuestResponse>("/process_answer", data);
 
       return {
-        question: response.data.question || "",
-        hints: response.data.hints || [],
-        session_id: data.session_id,
-        ...(response.data.next_question && {
-          next_question: response.data.next_question,
-        }),
-        ...(response.data.next_step && {
-          next_step: {
-            question: response.data.next_step.question,
-            hints: response.data.next_step.hints || [],
-            session_id: response.data.next_step.session_id || data.session_id,
-          },
-        }),
-        is_correct: response.data.is_correct || false,
+        content: response.data.content,
+        session_id: response.data.session_id,
+        status: response.data.status,
+        progress: response.data.progress,
       };
     } catch (error) {
       throw this.handleError(error);
@@ -110,9 +69,6 @@ export const QuestService = {
       return new Error(
         error.response?.data?.message || error.message || "Ошибка сервера"
       );
-    }
-    if (error instanceof Error) {
-      return error;
     }
     return new Error("Неизвестная ошибка");
   },

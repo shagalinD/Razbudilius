@@ -12,152 +12,118 @@ import {
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { TypeRootStackParamList } from "@/navigation/navigation.types";
 import { QuestService } from "@/services/quest.service";
-import { QuestDifficulty } from "@/types/apiChat";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { QuestDifficulty, QuestResponse } from "@/types/apiChat";
 
-type ChatScreenProps = NativeStackScreenProps<
-  TypeRootStackParamList,
-  "Chat"
-> & {
-  navigation: NativeStackNavigationProp<TypeRootStackParamList, "Chat">;
-};
+type ChatScreenProps = NativeStackScreenProps<TypeRootStackParamList, "Chat">;
 
 const ChatScreen: FC<ChatScreenProps> = ({ route, navigation }) => {
-  useEffect(() => {
-    console.log("Чат открыт с параметрами:", route.params);
-  }, []);
-  const { alarmId, alarmTime } = route.params;
+  const { alarmTime } = route.params;
   const [messages, setMessages] = useState<
     { id: string; text: string; isUser: boolean }[]
   >([]);
   const [inputText, setInputText] = useState("");
-  const [chatMode, setChatMode] = useState<"free" | "quest">("free");
-  const [currentQuestStep, setCurrentQuestStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [questProgress, setQuestProgress] = useState("");
 
   const startQuest = async (difficulty: QuestDifficulty) => {
     setIsLoading(true);
-    setChatMode("quest");
-    setCurrentQuestStep(0);
     setMessages([]);
 
     try {
-      const firstStep = await QuestService.startQuest(difficulty);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString() + "-bot",
-          text: firstStep.question,
-          isUser: false,
-        },
-      ]);
+      const response = await QuestService.startQuest(difficulty);
+      setSessionId(response.session_id);
+      addBotMessage(response.content, response.progress);
     } catch (error) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: "error-" + Date.now(),
-          text: "Не удалось начать квест. Попробуйте позже.",
-          isUser: false,
-        },
-      ]);
-      setChatMode("free");
+      if (error instanceof Error) {
+        addBotMessage(error.message);
+      } else {
+        addBotMessage("Произошла неизвестная ошибка");
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const sendMessage = async () => {
-    if (!inputText.trim()) return;
+  const sendAnswer = async () => {
+    if (!inputText.trim() || !sessionId) return;
 
-    // Добавляем сообщение пользователя
-    const userMessage = {
-      id: Date.now().toString(),
-      text: inputText,
-      isUser: true,
-    };
-    setMessages((prev) => [...prev, userMessage]);
+    const userMessage = inputText;
     setInputText("");
+    addUserMessage(userMessage);
 
-    if (chatMode === "quest") {
-      setIsLoading(true);
-      try {
-        const response = await QuestService.sendAnswer({
-          session_id: alarmId,
-          user_answer: inputText,
-        });
+    setIsLoading(true);
+    try {
+      const response = await QuestService.sendAnswer({
+        session_id: sessionId,
+        user_answer: userMessage,
+      });
 
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: Date.now().toString() + "-bot",
-            text: response.next_step?.question || "Квест завершен!",
-            isUser: false,
-          },
-        ]);
+      setSessionId(response.session_id);
+      addBotMessage(response.content, response.progress);
 
-        setCurrentQuestStep((prev) => prev + 1);
-      } catch (error) {
-        console.error("Ошибка при обработке ответа:", error);
-      } finally {
-        setIsLoading(false);
+      if (response.status === "completed") {
+        setSessionId(null);
+        addBotMessage("Квест завершен! Можете начать новый.");
       }
-    } else {
-      // Обычный режим чата
-      setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: Date.now().toString() + "-bot",
-            text: `Ответ на "${inputText}" (alarmId: ${alarmId})`,
-            isUser: false,
-          },
-        ]);
-      }, 500);
+    } catch (error) {
+      if (error instanceof Error) {
+        addBotMessage(error.message);
+      } else {
+        addBotMessage("Произошла неизвестная ошибка");
+      }
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const addUserMessage = (text: string) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        text,
+        isUser: true,
+      },
+    ]);
+  };
+
+  const addBotMessage = (text: string, progress?: string) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        text: `${text}${progress ? `\nПрогресс: ${progress}` : ""}`,
+        isUser: false,
+      },
+    ]);
+    if (progress) setQuestProgress(progress);
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Чат будильника {alarmTime}</Text>
+      {questProgress && <Text>Прогресс: {questProgress}</Text>}
 
-      {chatMode === "free" && messages.length === 0 && (
+      {!sessionId && (
         <View style={styles.questOptions}>
-          <Text style={styles.questTitle}>Выберите режим:</Text>
-          <TouchableOpacity
-            style={styles.questButton}
-            onPress={() => setChatMode("free")}
-          >
-            <Text>Свободный чат</Text>
-          </TouchableOpacity>
-          <Text style={styles.questSubtitle}>Или начать квест:</Text>
-          <TouchableOpacity
-            style={styles.questButton}
-            onPress={() => startQuest("30s")}
-            disabled={isLoading}
-          >
-            <Text>Легкий (30 сек)</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.questButton}
-            onPress={() => startQuest("1m")}
-            disabled={isLoading}
-          >
-            <Text>Средний (1 мин)</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.questButton}
-            onPress={() => startQuest("5m")}
-            disabled={isLoading}
-          >
-            <Text>Сложный (5 мин)</Text>
-          </TouchableOpacity>
+          <Text style={styles.questTitle}>Выберите сложность квеста:</Text>
+          {["30s", "1m", "5m"].map((diff) => (
+            <TouchableOpacity
+              key={diff}
+              style={styles.questButton}
+              onPress={() => startQuest(diff as QuestDifficulty)}
+              disabled={isLoading}
+            >
+              <Text>
+                {diff === "30s" && "Легкий (30 сек)"}
+                {diff === "1m" && "Средний (1 мин)"}
+                {diff === "5m" && "Сложный (5 мин)"}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       )}
-      <Button
-        title="Закрыть чат"
-        onPress={() => navigation.navigate("Home")}
-        color="#ff4444"
-      />
 
       <FlatList
         data={messages}
@@ -176,25 +142,37 @@ const ChatScreen: FC<ChatScreenProps> = ({ route, navigation }) => {
         )}
       />
 
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          value={inputText}
-          onChangeText={setInputText}
-          placeholder="Введите сообщение..."
-          editable={!isLoading}
-        />
-        <Button
-          title="Отправить"
-          onPress={sendMessage}
-          disabled={isLoading || !inputText.trim()}
-        />
-      </View>
+      {sessionId && (
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder="Введите ваш ответ..."
+            editable={!isLoading}
+            onSubmitEditing={sendAnswer}
+          />
+          <Button
+            title="Отправить"
+            onPress={sendAnswer}
+            disabled={isLoading || !inputText.trim()}
+          />
+        </View>
+      )}
+
+      <Button
+        title="Закрыть чат"
+        onPress={() => navigation.goBack()}
+        color="#ff4444"
+      />
 
       {isLoading && <ActivityIndicator size="large" style={styles.loader} />}
     </View>
   );
 };
+
+// Стили остаются без изменений из предыдущей версии
+// ...
 
 const styles = StyleSheet.create({
   container: {
