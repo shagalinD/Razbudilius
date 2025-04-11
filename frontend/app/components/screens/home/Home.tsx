@@ -7,7 +7,7 @@ import Banner from "./banner/Banner";
 const Home: FC = () => {
   return (
     <Layout>
-      <Header />
+      {/* <Header /> */}
       <Banner />
     </Layout>
   );

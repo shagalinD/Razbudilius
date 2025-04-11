@@ -8,13 +8,7 @@ const Header: FC = () => {
   const { profile } = useProfile();
   const { navigate } = useTypedNavigation();
   //метод для перехода на другие экраны.
-  return (
-    <View className="flex-row justify-between items-center">
-      <Text className=" mt-5 font-medium text-white text-3xl">
-        Hello,{profile?.name}!
-      </Text>
-    </View>
-  );
+  return <View className="flex-row justify-between items-center"></View>;
 };
 
 export default Header;

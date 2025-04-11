@@ -25,9 +25,16 @@ func main() {
 	router := gin.Default()
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	
 	router.POST("/register", handlers.Register)
 	router.POST("/login", handlers.Login)
 	router.GET("/profile", middleware.RequireAuth, handlers.Profile)
+	router.GET("/refresh", handlers.RefreshToken)
+
+	router.GET("/start_quest", handlers.HandleAlarmStop)
+	router.POST("/process_answer", handlers.HandleQuestAnswer)
 
 	router.Run(":8080")
 }
+
+//27ad0401-2cca-48c8-8d43-6affa84ee247

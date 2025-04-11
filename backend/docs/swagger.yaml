@@ -1,5 +1,12 @@
 basePath: /
 definitions:
+  handlers.QuestRequest:
+    properties:
+      session_id:
+        type: string
+      user_answer:
+        type: string
+    type: object
   models.User:
     description: User model
     properties:
@@ -57,12 +64,60 @@ paths:
       summary: Аутентификация пользователя
       tags:
       - auth
+  /process_answer:
+    post:
+      consumes:
+      - application/json
+      description: Send user's response and get next step of an existring quest
+      parameters:
+      - description: Ответ пользователя
+        in: body
+        name: Answer
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.QuestRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Next step
+      tags:
+      - Quest
   /profile:
     get:
       consumes:
       - application/json
       description: Получает информацию о пользователе на основе токена, сохраненного
         в куки
+      parameters:
+      - description: Access Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -85,11 +140,52 @@ paths:
       summary: Получение информации о пользователе
       tags:
       - auth
+  /refresh:
+    get:
+      consumes:
+      - application/json
+      description: Refreshes the access token using a valid refresh token
+      parameters:
+      - description: Refresh Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{"access_token": "new_access_token", "refresh_token": "new_refresh_token"}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: '{"error": "Refresh token is required"}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: '{"error": "Invalid refresh token"}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: '{"error": "Could not generate token"}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Refresh access token
+      tags:
+      - auth
   /register:
     post:
       consumes:
       - application/json
-      description: Регистрирует нового пользователя с указанным именем и паролем
+      description: Регистрирует нового пользователя с указанной почтой и паролем
       parameters:
       - description: Данные пользователя
         in: body
@@ -103,7 +199,9 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.User'
+            additionalProperties:
+              type: string
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -119,4 +217,45 @@ paths:
       summary: Регистрация нового пользователя
       tags:
       - auth
+  /start_quest:
+    get:
+      consumes:
+      - application/json
+      description: Get first step of a new quest
+      parameters:
+      - description: Сложность квеста (30s/1m/5m)
+        in: query
+        name: dif
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get quest
+      tags:
+      - Quest
 swagger: "2.0"
