@@ -4,10 +4,8 @@ from gigachat import GigaChat
 from gigachat.models import Chat, Messages, MessagesRole
 from typing import List
 import os
-import json
 import logging
 import uuid
-import re
 
 logger = logging.getLogger(__name__)
 
@@ -143,8 +141,8 @@ class GigaChatManager:
     def _set_max_steps(self, difficulty: str, session: QuestSession) -> int:
         """Определение количества шагов по уровню сложности"""
         last_step =  {
-            "30s": 4,
+            "30s": 3,
             "1m": 6,
-            "5m": 8
+            "5m": 12
         }.get(difficulty, 3)
         session.last_step = last_step
