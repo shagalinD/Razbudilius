@@ -6,6 +6,10 @@ import AuthProvider from "@/providers/auth/AuthProvider";
 import Toast from "react-native-toast-message";
 import { GestureHandlerRootView } from "react-native-gesture-handler"; // ✅ Добавляем GestureHandlerRootView
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { API_URL } from "@/config/api.config";
+import { Platform } from "react-native"; // Добавьте этот импорт
+
 // import AlarmClock from "@/components/screens/home/alarm/Alarm";
 
 const queryClient = new QueryClient({
@@ -25,6 +29,7 @@ export default function App() {
       <GestureHandlerRootView>
         <AuthProvider>
           <SafeAreaProvider>
+            {/* <ConnectionTest /> */}
             <Navigation />
           </SafeAreaProvider>
         </AuthProvider>

@@ -2,106 +2,113 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   Switch,
-  Modal,
-  StyleSheet,
   Button,
   FlatList,
-  Platform,
+  Alert,
+  StyleSheet,
+  TouchableOpacity,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { Picker } from "@react-native-picker/picker"; // Импортируем Picker
+import { TypeRootStackParamList } from "@/navigation/navigation.types";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 interface Alarm {
   id: string;
-  time: Date;
+  time: string; // Время в формате "HH:MM"
   isEnabled: boolean;
 }
 
 const AlarmClock = () => {
   const [alarms, setAlarms] = useState<Alarm[]>([]);
-  const [showPicker, setShowPicker] = useState(false);
-  const [selectedTime, setSelectedTime] = useState(new Date());
+  const [selectedHour, setSelectedHour] = useState<string>("00");
+  const [selectedMinute, setSelectedMinute] = useState<string>("00");
 
-  // Загрузка будильников при монтировании компонента
+  const navigation =
+    useNavigation<NativeStackNavigationProp<TypeRootStackParamList>>();
+    
+  // Загрузка будильников
   useEffect(() => {
     const loadAlarms = async () => {
       try {
         const savedAlarms = await AsyncStorage.getItem("alarms");
         if (savedAlarms) {
-          const parsedAlarms = JSON.parse(savedAlarms).map((alarm: any) => ({
-            ...alarm,
-            time: new Date(alarm.time),
-          }));
-          setAlarms(parsedAlarms);
-        } else {
-          setAlarms([]);
+          setAlarms(JSON.parse(savedAlarms));
         }
       } catch (error) {
-        console.error("Ошибка загрузки будильников:", error);
-        setAlarms([]);
+        console.error("Ошибка загрузки:", error);
       }
     };
     loadAlarms();
   }, []);
 
-  // Сохранение будильников в AsyncStorage
+  useEffect(() => {
+    const checkAlarms = () => {
+      const now = new Date();
+      const hours = now.getHours().toString().padStart(2, "0");
+      const minutes = now.getMinutes().toString().padStart(2, "0");
+      const currentTime = `${hours}:${minutes}`;
+
+      console.log("[DEBUG] Current time:", currentTime);
+      console.log("[DEBUG] Alarms:", alarms);
+      // Ищем активный будильник
+      const activeAlarm = alarms.find(
+        (alarm) => alarm.isEnabled && alarm.time === currentTime
+      );
+
+      if (activeAlarm) {
+        navigation.navigate("Chat", {
+          alarmId: activeAlarm.id,
+          alarmTime: activeAlarm.time,
+        });
+
+        // Дополнительно: отключаем будильник после срабатывания
+        // если нужно одноразовое срабатывание
+        // toggleAlarm(activeAlarm.id);
+      }
+    };
+
+    // Проверяем сразу при монтировании
+    checkAlarms();
+
+    // Затем проверяем каждую минуту
+    const interval = setInterval(checkAlarms, 60000);
+
+    return () => clearInterval(interval);
+  }, [alarms, navigation]);
+
+  // Сохранение будильников
   const saveAlarms = async (updatedAlarms: Alarm[]) => {
     try {
       await AsyncStorage.setItem("alarms", JSON.stringify(updatedAlarms));
       setAlarms(updatedAlarms);
     } catch (error) {
-      console.error("Ошибка сохранения будильников:", error);
+      console.error("Ошибка сохранения:", error);
     }
   };
 
-  // Добавление нового будильника
-  const addAlarm = async () => {
+  // Добавление будильника
+  const addAlarm = (time: string) => {
     const newAlarm: Alarm = {
-      id: Math.random().toString(36).substr(2, 9),
-      time: selectedTime,
+      id: Date.now().toString(),
+      time,
       isEnabled: true,
     };
-
-    const updatedAlarms = [...alarms, newAlarm];
-    await saveAlarms(updatedAlarms);
-    setShowPicker(false); // Закрываем модальное окно
+    saveAlarms([...alarms, newAlarm]);
   };
 
-  // Удаление будильника
-  const deleteAlarm = async (id: string) => {
-    const updatedAlarms = alarms.filter((alarm) => alarm.id !== id);
-    await saveAlarms(updatedAlarms);
+  // Обработчик добавления будильника
+  const handleAddAlarm = () => {
+    const alarmTime = `${selectedHour}:${selectedMinute}`;
+    addAlarm(alarmTime);
   };
 
-  // Переключение состояния будильника (вкл/выкл)
-  const toggleAlarm = async (id: string) => {
-    const updatedAlarms = alarms.map((alarm) =>
-      alarm.id === id ? { ...alarm, isEnabled: !alarm.isEnabled } : alarm
-    );
-    await saveAlarms(updatedAlarms);
-  };
-
-  // Обработчик изменения времени в DateTimePicker
-  const handleTimeChange = (event: any, date?: Date) => {
-    if (date) {
-      setSelectedTime(date); // Обновляем выбранное время
-    }
-    if (Platform.OS === "android") {
-      setShowPicker(false); // На Android закрываем пикер после выбора времени
-    }
-  };
-
-  // Рендер элемента списка будильников
+  // Рендер элемента списка
   const renderAlarmItem = ({ item }: { item: Alarm }) => (
     <View style={styles.alarmItem}>
-      <Text style={styles.timeText}>
-        {item.time.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })}
-      </Text>
+      <Text style={styles.timeText}>{item.time}</Text>
       <Switch
         value={item.isEnabled}
         onValueChange={() => toggleAlarm(item.id)}
@@ -110,11 +117,56 @@ const AlarmClock = () => {
     </View>
   );
 
+  // Удаление будильника
+  const deleteAlarm = (id: string) => {
+    saveAlarms(alarms.filter((alarm) => alarm.id !== id));
+  };
+
+  // Переключение будильника
+  const toggleAlarm = (id: string) => {
+    saveAlarms(
+      alarms.map((alarm) =>
+        alarm.id === id ? { ...alarm, isEnabled: !alarm.isEnabled } : alarm
+      )
+    );
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Alarms</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Будильники</Text>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={selectedHour}
+            style={styles.picker}
+            onValueChange={(itemValue: string) => setSelectedHour(itemValue)} // Типизация параметра
+          >
+            {Array.from({ length: 24 }, (_, index) => (
+              <Picker.Item
+                key={index}
+                label={String(index).padStart(2, "0")}
+                value={String(index).padStart(2, "0")}
+              />
+            ))}
+          </Picker>
 
-      {/* Контейнер с будильниками */}
+          <Text style={styles.separator}>:</Text>
+
+          <Picker
+            selectedValue={selectedMinute}
+            style={styles.picker}
+            onValueChange={(itemValue: string) => setSelectedMinute(itemValue)} // Типизация параметра
+          >
+            {Array.from({ length: 60 }, (_, index) => (
+              <Picker.Item
+                key={index}
+                label={String(index).padStart(2, "0")}
+                value={String(index).padStart(2, "0")}
+              />
+            ))}
+          </Picker>
+        </View>
+      </View>
       <FlatList
         data={alarms}
         renderItem={renderAlarmItem}
@@ -122,35 +174,20 @@ const AlarmClock = () => {
         ListEmptyComponent={
           <Text style={styles.emptyText}>Нет активных будильников</Text>
         }
-        contentContainerStyle={styles.flatListContent}
       />
 
-      {/* Контейнер с кнопкой теперь фиксирован внизу */}
-      <View style={styles.addButtonContainer}>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setShowPicker(true)}
-        >
-          <Text style={styles.addButtonText}>Добавить будильник</Text>
-        </TouchableOpacity>
-      </View>
-
-      {showPicker && (
-        <Modal visible={showPicker} transparent={true} animationType="slide">
-          <View style={styles.modalContainer}>
-            <View style={styles.pickerContainer}>
-              <DateTimePicker
-                value={selectedTime}
-                mode="time"
-                display={Platform.OS === "ios" ? "spinner" : "default"}
-                onChange={handleTimeChange}
-              />
-              <Button title="Добавить будильник" onPress={addAlarm} />
-              <Button title="Отмена" onPress={() => setShowPicker(false)} />
-            </View>
-          </View>
-        </Modal>
-      )}
+      <Button
+        title="Тест: Открыть чат"
+        onPress={() =>
+          navigation.navigate("Chat", {
+            alarmId: "test123",
+            alarmTime: "12:00",
+          })
+        }
+      />
+      <TouchableOpacity style={styles.addButton} onPress={handleAddAlarm}>
+        <Text style={styles.addButtonText}>+ Добавить будильник</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -158,64 +195,72 @@ const AlarmClock = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "black",
+    backgroundColor: "#000",
     padding: 20,
-    paddingBottom: 90,
-  },
-  flatListContent: {
-    paddingBottom: 20,
   },
   title: {
-    color: "white",
-    fontSize: 24,
+    color: "#fff",
+    fontSize: 25,
     fontWeight: "bold",
     marginBottom: 20,
   },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center", // Выравнивание по центру по вертикали
+    marginBottom: 20,
+  },
   alarmItem: {
-    backgroundColor: "#333",
-    padding: 16,
-    borderRadius: 10,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: "#333",
+    padding: 15,
+    borderRadius: 10,
     marginBottom: 10,
   },
   timeText: {
-    color: "white",
-    fontSize: 20,
+    color: "#fff",
+    fontSize: 18,
   },
   emptyText: {
-    color: "white",
+    color: "#fff",
     textAlign: "center",
     marginTop: 20,
   },
-  addButtonContainer: {
-    position: "absolute",
-    bottom: 20,
-    left: 20,
-    right: 20,
+  label: {
+    color: "#fff",
+    fontSize: 18,
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  pickerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1, // Занимает доступное пространство
+    justifyContent: "flex-end", // Выравнивание по правому краю
+  },
+  picker: {
+    width: 80,
+    height: 50,
+    backgroundColor: "#555",
+    color: "#fff",
+  },
+  separator: {
+    color: "#fff",
+    fontSize: 30,
+    marginHorizontal: 10,
   },
   addButton: {
     backgroundColor: "#555",
-    padding: 16,
+    padding: 15,
     borderRadius: 10,
     alignItems: "center",
+    marginTop: 20,
   },
   addButtonText: {
-    color: "white",
+    color: "#fff",
     fontSize: 18,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  pickerContainer: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
-    width: "80%",
   },
 });
 

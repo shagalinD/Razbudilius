@@ -3,6 +3,7 @@ import Home from "@/components/screens/home/Home";
 import Profile from "@/components/screens/Profile/Profile";
 
 import { IRoute } from "./navigation.types";
+import ChatScreen from "@/components/screens/home/alarm/ChatScreen";
 
 export const routes: IRoute[] = [
   // {
@@ -16,5 +17,9 @@ export const routes: IRoute[] = [
   {
     name: "Profile",
     component: Profile,
+  },
+  {
+    name: "Chat", //убрать chat
+    component: ChatScreen,
   },
 ];
