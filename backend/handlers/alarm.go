@@ -25,6 +25,13 @@ import (
 func HandleAlarmStop(c *gin.Context) {
 	// Получение настроек сложности из профиля
 	difficulty := c.Query("dif")
+
+	if difficulty != "30s" && difficulty != "1m" && difficulty != "5m" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error":"invalid difficulty format (30s, 1m, 5m)",
+		})
+		return
+	}
 	
 	resp, err := http.Get(
 			os.Getenv("PYTHON_SERVICE_URL") + fmt.Sprintf("/start_quest?dif=%s", difficulty),
@@ -116,7 +123,7 @@ func HandleQuestAnswer(c *gin.Context) {
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&questData); err != nil {
-			c.AbortWithStatusJSON(500, gin.H{"error": "Invalid response format"})
+			c.AbortWithStatusJSON(500, gin.H{"error": "Invalid ai response format"})
 			return
 	}
 

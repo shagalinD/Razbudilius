@@ -4,10 +4,8 @@ from gigachat import GigaChat
 from gigachat.models import Chat, Messages, MessagesRole
 from typing import List
 import os
-import json
 import logging
 import uuid
-import re
 
 logger = logging.getLogger(__name__)
 
@@ -24,12 +22,13 @@ class QuestSession:
 class GigaChatManager:
     def __init__(self):
         self.sessions: Dict[str, QuestSession] = {}
-        
+        print(os.getenv("CERTIFICATE_PATH"), os.getenv("GIGACHAT_API_KEY"))
+
         self.client = GigaChat(
             credentials=os.getenv("GIGACHAT_API_KEY"),
             scope="GIGACHAT_API_PERS",
             model="GigaChat",
-            ca_bundle_file=r"C:\Games\russian_trusted_root_ca.cer",
+            ca_bundle_file=os.getenv("CERTIFICATE_PATH")
         )
         self._update_token()
 
@@ -101,6 +100,7 @@ class GigaChatManager:
             messages=session.steps
         ))
         content = response.choices[0].message.content
+
         session.steps.append(Messages(
             role=MessagesRole.ASSISTANT,
             content=content,
@@ -143,8 +143,8 @@ class GigaChatManager:
     def _set_max_steps(self, difficulty: str, session: QuestSession) -> int:
         """Определение количества шагов по уровню сложности"""
         last_step =  {
-            "30s": 4,
+            "30s": 3,
             "1m": 6,
-            "5m": 8
+            "5m": 12
         }.get(difficulty, 3)
         session.last_step = last_step
