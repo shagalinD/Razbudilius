@@ -148,24 +148,3 @@ class GigaChatManager:
             "5m": 8
         }.get(difficulty, 3)
         session.last_step = last_step
-
-    # def validate_answer(self, user_answer: str, context: str) -> bool:
-    #     """Проверка осмысленности ответа"""
-    #     print(context)
-    #     prompt = f"""
-    #     Контекст: {context}
-    #     Ответ пользователя: {user_answer}
-        
-    #     Сможешь ли ты, основываясь на контекте и полагаясь на ответ пользователя, логично продолжить историю?
-    #     Ответь только "да" или "нет".
-    #     """
-
-    #     print("prompt: ", prompt)
-        
-    #     try:
-    #         response = self.client.chat(prompt)
-    #         print(response.choices[0].message.content)
-    #         return not('нет' in response.choices[0].message.content.lower())
-    #     except Exception as e:
-    #         logger.error(f"Validation failed: {str(e)}")
-    #         return True  # Fallback для бесперебойной работы
