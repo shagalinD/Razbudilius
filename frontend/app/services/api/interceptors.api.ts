@@ -1,11 +1,12 @@
 // Обработка истекших токенов
-import { API_URL } from "@/config/api.config";
+import { API_URL, getAuthUrl } from "@/config/api.config";
 import { EnumSecureStore } from "@/types/auth.interface";
 import axios from "axios";
 import { getItemAsync } from "expo-secure-store";
 import { errorCatch } from "./error.api";
 import { GetNewTokens } from "./helper.auth";
 import { deleteTokenSrorage, getAccessToken } from "../auth/auth.helper";
+import Toast from "react-native-toast-message";
 
 const instance = axios.create({
   baseURL: API_URL,
@@ -23,7 +24,8 @@ instance.interceptors.request.use(async (config) => {
   if (config.headers && accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`;
   }
-
+  console.log("Request to:", `${config.baseURL}${config.url}`);
+  console.log("Method:", config.method?.toUpperCase());
   return config;
   //Возвращаем изменённую конфигурацию запроса.
 });
@@ -61,4 +63,5 @@ instance.interceptors.response.use(
     throw error;
   }
 );
+
 export default instance;

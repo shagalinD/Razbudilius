@@ -7,7 +7,6 @@ import { saveToStorage } from "../auth/auth.helper";
 export const GetNewTokens = async () => {
   try {
     const refreshToken = await getItemAsync(EnumSecureStore.REFRESH_TOKEN);
-    // Отправляем запрос на сервер с refreshToken, чтобы получить новый accessToken
     const response = await axios.post<string, { data: IAuthResponse }>(
       API_URL + getAuthUrl("/login/access-token"),
       { refreshToken },
@@ -18,7 +17,6 @@ export const GetNewTokens = async () => {
       }
     );
     if (response.data.accessToken) await saveToStorage(response.data);
-    //Возвращаем ответ от сервера
     return response;
   } catch (e) {}
 };
