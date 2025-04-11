@@ -8,6 +8,7 @@ export type TypeRootStackParamList = {
     alarmId: string;
     alarmTime: string;
   }; // убрать chat
+  AlarmClock: undefined;
 };
 
 export interface IRoute {

@@ -50,6 +50,8 @@ const AlarmClock = () => {
       const minutes = now.getMinutes().toString().padStart(2, "0");
       const currentTime = `${hours}:${minutes}`;
 
+      console.log("[DEBUG] Current time:", currentTime);
+      console.log("[DEBUG] Alarms:", alarms);
       // Ищем активный будильник
       const activeAlarm = alarms.find(
         (alarm) => alarm.isEnabled && alarm.time === currentTime

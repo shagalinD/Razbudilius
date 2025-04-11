@@ -13,10 +13,16 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { TypeRootStackParamList } from "@/navigation/navigation.types";
 import { QuestService } from "@/services/quest.service";
 import { QuestDifficulty } from "@/types/apiChat";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-type ChatScreenProps = NativeStackScreenProps<TypeRootStackParamList, "Chat">;
+type ChatScreenProps = NativeStackScreenProps<
+  TypeRootStackParamList,
+  "Chat"
+> & {
+  navigation: NativeStackNavigationProp<TypeRootStackParamList, "Chat">;
+};
 
-const ChatScreen: FC<ChatScreenProps> = ({ route }) => {
+const ChatScreen: FC<ChatScreenProps> = ({ route, navigation }) => {
   useEffect(() => {
     console.log("Чат открыт с параметрами:", route.params);
   }, []);
@@ -147,6 +153,11 @@ const ChatScreen: FC<ChatScreenProps> = ({ route }) => {
           </TouchableOpacity>
         </View>
       )}
+      <Button
+        title="Закрыть чат"
+        onPress={() => navigation.navigate("Home")}
+        color="#ff4444"
+      />
 
       <FlatList
         data={messages}
